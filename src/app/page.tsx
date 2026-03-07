@@ -1,20 +1,28 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Plus, CheckCircle2, Circle, Trash2, Home, PieChart, Settings, Loader2 } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Trash2, Home, PieChart, Settings, Loader2, Calendar } from 'lucide-react';
 
 export default function MobileAppDashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [priority, setPriority] = useState('low'); 
+  const [priority, setPriority] = useState('low');
+  
+  // 1. เพิ่มสถานะการเลือกวันที่ เพื่อรองรับนัดหมายวันอื่น/เดือนหน้า
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const fetchTasks = async () => {
-    const { data } = await supabase.from('todos').select('*').order('created_at', { ascending: false });
+    // กรองงานตามวันที่เลือกเพื่อให้แต่ละวันมีเป้าหมายของตัวเอง
+    const { data } = await supabase
+      .from('todos')
+      .select('*')
+      .eq('task_date', selectedDate) 
+      .order('created_at', { ascending: false });
     if (data) setTasks(data);
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => { fetchTasks(); }, [selectedDate]);
 
   const toggleStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'pending' : 'completed';
@@ -34,7 +42,8 @@ export default function MobileAppDashboard() {
     await supabase.from('todos').insert([{ 
       title: newTask, 
       status: 'pending',
-      priority: priority 
+      priority: priority,
+      task_date: selectedDate // บันทึกงานลงในวันที่ที่เลือก
     }]);
     setNewTask('');
     setPriority('low');
@@ -56,7 +65,6 @@ export default function MobileAppDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-slate-900">
-      {/* 1. ปรับ Header ให้เว้นระยะจากรอยบาก (Padding Top) */}
       <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 pt-[var(--nav-pt)] pb-4 flex justify-between items-center shadow-sm">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-800 uppercase">TaskMaster</h1>
@@ -67,8 +75,9 @@ export default function MobileAppDashboard() {
         </div>
       </nav>
 
-      <main className="p-6 max-w-md mx-auto">
-        <div className="grid grid-cols-2 gap-4 mb-8">
+      <main className="p-6 max-w-md mx-auto space-y-6">
+        {/* กรอบบนสองอันที่คุณชอบ (คงเดิมทุกอย่าง) */}
+        <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 transition-transform active:scale-95">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
             <h3 className="text-3xl font-black text-slate-800">{total}</h3>
@@ -79,13 +88,24 @@ export default function MobileAppDashboard() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50 mb-8">
+        {/* 2. ส่วนเลือกวันที่แบบเรียบง่าย (เพื่อสลับไปดูนัดเดือนหน้า) */}
+        <div className="relative flex items-center bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm">
+          <Calendar className="text-blue-500 mr-3" size={18} />
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="w-full bg-transparent border-none outline-none font-bold text-sm text-slate-600"
+          />
+        </div>
+
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50">
           <form onSubmit={handleAddTask} className="space-y-5">
             <input 
               type="text" 
               value={newTask}
               onChange={(e) => setNewTask(e.target.value)}
-              placeholder="วันนี้ต้องทำอะไร?" 
+              placeholder="เป้าหมายของวันนี้คืออะไร?" 
               className="w-full p-5 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-4 focus:ring-blue-500/10 outline-none text-base font-bold placeholder:text-slate-300 transition-all"
             />
             
@@ -117,7 +137,7 @@ export default function MobileAppDashboard() {
           </div>
 
           {tasks.length === 0 ? (
-            <div className="py-16 text-center text-slate-200 font-black text-xs uppercase tracking-widest">Queue is Empty</div>
+            <div className="py-16 text-center text-slate-200 font-black text-xs uppercase tracking-widest italic">ไม่มีรายการสำหรับวันนี้</div>
           ) : (
             tasks.map((task) => (
               <div key={task.id} className="bg-white p-5 rounded-[2rem] flex items-center justify-between shadow-sm border border-slate-50 active:scale-[0.98] transition-all">
@@ -145,24 +165,18 @@ export default function MobileAppDashboard() {
         </div>
       </main>
 
-      {/* 2. ปรับ Footer (Bottom Nav) ให้ขยับไอคอนเข้าข้างใน (Padding Horizontal) และเว้นขอบล่าง (Padding Bottom) */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-12 pt-5 pb-10 flex justify-between items-center z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-        {/* ปรับ px-12 เพื่อขยับไอคอนซ้ายขวาเข้าหาตรงกลาง ไม่ให้ชิดมุมจอโค้ง */}
-        {/* ปรับ pb-10 เพื่อเว้นระยะจากขอบล่างของ iPhone (Home Indicator) */}
-        
         <button className="flex flex-col items-center gap-1.5 text-blue-600 transition-transform active:scale-90">
           <Home size={26} strokeWidth={3} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">Home</span>
+          <span className="text-[9px] font-black uppercase tracking-tighter">Home</span>
         </button>
-        
         <button className="flex flex-col items-center gap-1.5 text-slate-300 transition-transform active:scale-90">
           <PieChart size={26} strokeWidth={3} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">Stats</span>
+          <span className="text-[9px] font-black uppercase tracking-tighter">Stats</span>
         </button>
-        
         <button className="flex flex-col items-center gap-1.5 text-slate-300 transition-transform active:scale-90">
           <Settings size={26} strokeWidth={3} />
-          <span className="text-[10px] font-black uppercase tracking-tighter">Menu</span>
+          <span className="text-[9px] font-black uppercase tracking-tighter">Menu</span>
         </button>
       </footer>
     </div>
