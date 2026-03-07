@@ -76,7 +76,7 @@ export default function DashboardPage() {
               <CalendarIcon 
                 size={20} 
                 className="text-blue-500 cursor-pointer"
-                onClick={()=>dateInputRef.current?.showPicker()}
+                onClick={()=>dateInputRef.current?.click()}
               />
 
               {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
@@ -88,7 +88,7 @@ export default function DashboardPage() {
               type="date"
               value={activeDay}
               onChange={handleDatePicker}
-              className="absolute opacity-0 pointer-events-none"
+              className="absolute opacity-0 w-0 h-0"
             />
 
             <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-1">
@@ -204,7 +204,7 @@ export default function DashboardPage() {
         </section>
       </main>
 
-      {/* footer เหมือนเดิม */}
+      {/* footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center z-40 shadow-2xl">
         <button onClick={() => router.push('/')} className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform group">
           <Home size={26} strokeWidth={3} className="group-hover:text-slate-400 transition-colors" />
