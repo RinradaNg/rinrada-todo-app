@@ -2,12 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, Home, PieChart, Settings, CheckCircle2, AlertCircle } from 'lucide-react';
+import { 
+  ChevronLeft, ChevronRight, Calendar as CalendarIcon, 
+  Clock, Home, PieChart, Settings, CheckCircle2, 
+  AlertCircle, Video, User, Briefcase, Star
+} from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [allTasks, setAllTasks] = useState<any[]>([]);
-  const [viewDate, setViewDate] = useState(new Date()); // สำหรับเลื่อนเดือน/ปี
+  const [viewDate, setViewDate] = useState(new Date()); 
   const [activeDay, setActiveDay] = useState<string>(new Date().toISOString().split('T')[0]);
   const [selectedDayTasks, setSelectedDayTasks] = useState<any[]>([]);
 
@@ -34,80 +38,144 @@ export default function DashboardPage() {
   const firstDayOfMonth = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1).getDay();
 
   return (
-    <div className="min-h-screen bg-[#FDFEFF] pb-32 font-sans">
-      {/* 📊 Header: สรุปงานค้างและ Success Rate รวม */}
-      <header className="p-8 pt-12 bg-slate-900 text-white rounded-b-[3rem] shadow-2xl">
-        <h1 className="text-2xl font-black tracking-tighter">Workflow Dashboard</h1>
-        <div className="grid grid-cols-2 gap-4 mt-8">
-          <div className="bg-white/10 p-5 rounded-[2rem] border border-white/10">
-            <p className="text-[9px] font-black opacity-60 uppercase">Total Success</p>
-            <h2 className="text-3xl font-black">
-              {allTasks.length > 0 ? Math.round((allTasks.filter(t => t.status === 'completed').length / allTasks.length) * 100) : 0}%
-            </h2>
-          </div>
-          <div className="bg-blue-600 p-5 rounded-[2rem]">
-            <p className="text-[9px] font-black text-blue-100 uppercase">Pending Tasks</p>
-            <h2 className="text-3xl font-black">{allTasks.filter(t => t.status === 'pending').length}</h2>
-          </div>
+    <div className="min-h-screen bg-[#F8FAFC] pb-36 font-sans text-slate-900">
+      {/* 1. Glassy Header with Navigation */}
+      <nav className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl px-8 pt-16 pb-6 border-b border-slate-100 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-black tracking-tighter bg-gradient-to-r from-slate-900 to-slate-500 bg-clip-text text-transparent">
+            Schedule
+          </h1>
+          <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Analytics & Planning</p>
         </div>
-      </header>
+        <div className="flex gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 shadow-sm border border-blue-100">
+                <PieChart size={20} strokeWidth={2.5} />
+            </div>
+        </div>
+      </nav>
 
-      <main className="p-6 space-y-6">
-        {/* 🗓️ ปฏิทินรวม: กดดูได้ทุกปี */}
-        <section className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="font-black text-slate-800 uppercase tracking-tighter">
+      <main className="p-6 space-y-8">
+        {/* 2. Professional Calendar View */}
+        <section className="bg-white p-6 rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.03)] border border-white">
+          <div className="flex justify-between items-center mb-8 px-2">
+            <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              <CalendarIcon size={20} className="text-blue-500" />
               {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
             </h2>
-            <div className="flex gap-2">
-              <button onClick={() => changeMonth(-1)} className="p-2 bg-slate-50 rounded-xl active:scale-75 transition-all"><ChevronLeft size={18}/></button>
-              <button onClick={() => changeMonth(1)} className="p-2 bg-slate-50 rounded-xl active:scale-75 transition-all"><ChevronRight size={18}/></button>
+            <div className="flex bg-slate-100 p-1.5 rounded-2xl gap-1">
+              <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-white hover:shadow-sm rounded-xl transition-all text-slate-400"><ChevronLeft size={18}/></button>
+              <button onClick={() => changeMonth(1)} className="p-2 hover:bg-white hover:shadow-sm rounded-xl transition-all text-slate-400"><ChevronRight size={18}/></button>
             </div>
           </div>
+
+          <div className="grid grid-cols-7 gap-y-3 text-center mb-4 text-[10px] font-black text-slate-300 uppercase tracking-tighter">
+            {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => <div key={d}>{d}</div>)}
+          </div>
+          
           <div className="grid grid-cols-7 gap-y-3 text-center">
-            {['S','M','T','W','T','F','S'].map(d => <div key={d} className="text-[10px] font-black text-slate-300">{d}</div>)}
             {[...Array(firstDayOfMonth)].map((_, i) => <div key={i}/>)}
             {[...Array(daysInMonth)].map((_, i) => {
               const day = i + 1;
               const dateStr = `${viewDate.getFullYear()}-${String(viewDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const hasTasks = allTasks.some(t => t.task_date === dateStr);
+              const dayTasks = allTasks.filter(t => t.task_date === dateStr);
+              const isSelected = activeDay === dateStr;
+              const isToday = new Date().toISOString().split('T')[0] === dateStr;
+
               return (
-                <button key={day} onClick={() => handleDayClick(day)} className={`relative w-10 h-10 mx-auto rounded-2xl flex items-center justify-center text-sm font-black transition-all ${activeDay === dateStr ? 'bg-blue-600 text-white' : 'text-slate-600'}`}>
+                <button 
+                  key={day} 
+                  onClick={() => handleDayClick(day)} 
+                  className={`relative w-11 h-11 mx-auto rounded-2xl flex items-center justify-center text-sm font-black transition-all ${
+                    isSelected ? 'bg-blue-600 text-white shadow-xl shadow-blue-200 scale-110' : 
+                    isToday ? 'bg-blue-50 text-blue-600 border border-blue-100' : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
                   {day}
-                  {hasTasks && activeDay !== dateStr && <div className="absolute bottom-1 w-1 h-1 bg-blue-500 rounded-full"/>}
+                  {dayTasks.length > 0 && !isSelected && (
+                    <div className="absolute bottom-1.5 flex gap-0.5">
+                        {dayTasks.slice(0, 3).map((t, idx) => (
+                            <div key={idx} className={`w-1 h-1 rounded-full ${t.status === 'completed' ? 'bg-emerald-400' : 'bg-blue-400'}`} />
+                        ))}
+                    </div>
+                  )}
                 </button>
               );
             })}
           </div>
         </section>
 
-        {/* 📋 รายการงานที่ค้างอยู่ในวันที่เลือก */}
-        <section className="space-y-3">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Work List: {activeDay}</h3>
-          {selectedDayTasks.map(task => (
-            <div key={task.id} className="bg-white p-5 rounded-[2.2rem] flex items-center justify-between border border-slate-50 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className={`w-1.5 h-8 rounded-full ${task.status === 'completed' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                <span className={`font-black tracking-tight ${task.status === 'completed' ? 'line-through opacity-30 italic' : ''}`}>{task.title}</span>
+        {/* 3. Task List with Dynamic Coloring */}
+        <section className="space-y-6">
+          <div className="flex items-end justify-between px-2">
+            <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Agenda of the day</h3>
+            <span className="text-[10px] font-black text-slate-300">{selectedDayTasks.length} ITEMS</span>
+          </div>
+
+          <div className="space-y-4">
+            {selectedDayTasks.length === 0 ? (
+              <div className="bg-white rounded-[2.5rem] py-16 border border-slate-100 text-center flex flex-col items-center shadow-sm">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-4">
+                    <Star size={32} />
+                </div>
+                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No plans for this day</p>
               </div>
-              {task.status === 'pending' ? <AlertCircle size={18} className="text-amber-400" /> : <CheckCircle2 size={18} className="text-emerald-500" />}
-            </div>
-          ))}
+            ) : (
+              selectedDayTasks.map(task => (
+                <div 
+                  key={task.id} 
+                  className={`relative overflow-hidden bg-white p-6 rounded-[2.5rem] flex items-center gap-5 border border-slate-100 shadow-sm transition-all active:scale-[0.97] group`}
+                >
+                  {/* Status Indicator Bar */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-2 ${
+                    task.status === 'completed' ? 'bg-emerald-500' : 
+                    task.category === 'Meeting' ? 'bg-blue-600' : 'bg-amber-400'
+                  }`} />
+
+                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
+                    task.category === 'Meeting' ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
+                  }`}>
+                    {task.category === 'Meeting' ? <Video size={22} /> : <Briefcase size={22} />}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-lg font-black tracking-tight block truncate ${task.status === 'completed' ? 'line-through text-slate-300' : 'text-slate-800'}`}>
+                    {task.title}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-y-1 gap-x-3 mt-1">
+                      <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                        <Clock size={12} className="text-blue-500" /> {task.due_time || "Flexible"}
+                      </div>
+                      {task.assignee && (
+                        <div className="flex items-center gap-1 text-[9px] font-black text-slate-500 uppercase tracking-tighter">
+                          <User size={12} className="text-slate-300" /> {task.assignee}
+                        </div>
+                      )}
+                      <div className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${
+                        task.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                      }`}>
+                        {task.status}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </section>
       </main>
 
-      {/* 🧭 Footer: กดสลับกลับหน้า Home */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center z-40">
-        <button onClick={() => router.push('/')} className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform">
-          <Home size={26} strokeWidth={3} />
+      {/* 🧭 Optimized Navigation Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center z-40 shadow-2xl">
+        <button onClick={() => router.push('/')} className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform group">
+          <Home size={26} strokeWidth={3} className="group-hover:text-slate-400 transition-colors" />
           <span className="text-[9px] font-black uppercase tracking-widest">Home</span>
         </button>
         <button className="flex flex-col items-center gap-1.5 text-blue-600 active:scale-90 transition-transform">
-          <PieChart size={26} strokeWidth={3} />
+          <PieChart size={28} strokeWidth={3} className="drop-shadow-[0_0_8px_rgba(37,99,235,0.3)]" />
           <span className="text-[9px] font-black uppercase tracking-widest">Dashboard</span>
         </button>
-        <button className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform">
-          <Settings size={26} strokeWidth={3} />
+        <button className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform group">
+          <Settings size={26} strokeWidth={3} className="group-hover:text-slate-400 transition-colors" />
           <span className="text-[9px] font-black uppercase tracking-widest">Menu</span>
         </button>
       </footer>
