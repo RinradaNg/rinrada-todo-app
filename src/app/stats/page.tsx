@@ -193,10 +193,10 @@ export default function DashboardPage() {
             className="bg-white border border-slate-200 rounded-xl px-3 text-sm"
           >
             <option value="all">All</option>
-            <option value="Work">Work</option>
-            <option value="Meeting">Meeting</option>
-            <option value="Personal">Personal</option>
-            <option value="Urgent">Urgent</option>
+            <option value="Work">💼 Work</option>
+            <option value="Meeting">🗓️ Meeting</option>
+            <option value="Personal">🏠 Personal</option>
+            <option value="Urgent">🚨 Urgent</option>
           </select>
 
           <select

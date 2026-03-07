@@ -194,7 +194,7 @@ className="w-full bg-transparent outline-none text-sm font-semibold"
 type="text"
 value={newTask}
 onChange={(e) => setNewTask(e.target.value)}
-placeholder="เพิ่มงานใหม่..."
+placeholder="เพิ่มงานหรือนัดหมายใหม่..."
 className="w-full p-4 rounded-xl bg-slate-50 ring-1 ring-slate-100 text-sm font-semibold"
 />
 
