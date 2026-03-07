@@ -1,7 +1,10 @@
 "use client"
-import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+
+import React, { useState, useEffect, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
+import Header from '@/components/Header'
+
 import {
 ChevronLeft,
 ChevronRight,
@@ -12,7 +15,7 @@ PieChart,
 Settings,
 User,
 Star
-} from 'lucide-react';
+} from 'lucide-react'
 
 export default function DashboardPage(){
 
@@ -20,6 +23,7 @@ const router = useRouter()
 
 const [allTasks,setAllTasks] = useState<any[]>([])
 const [viewDate,setViewDate] = useState(new Date())
+
 const [activeDay,setActiveDay] = useState(
 new Date().toISOString().split("T")[0]
 )
@@ -34,20 +38,35 @@ const dateInputRef = useRef<HTMLInputElement>(null)
 
 const today = new Date().toISOString().split("T")[0]
 
+/* FETCH TASKS */
+
 const fetchAllTasks = async ()=>{
 
-const {data} = await supabase
+let query = supabase
 .from("todos")
 .select("*")
+
+if(filterCategory !== "all"){
+query = query.eq("category",filterCategory)
+}
+
+if(filterStatus !== "all"){
+query = query.eq("status",filterStatus)
+}
+
+const {data,error} = await query.order("due_time",{ascending:true})
+
+if(error){
+console.log("Fetch error:",error)
+return
+}
 
 if(data){
 
 setAllTasks(data)
 
 const tasks = data
-.filter(t=>t.task_date === activeDay)
-.filter(t=>filterCategory==="all"?true:t.category===filterCategory)
-.filter(t=>filterStatus==="all"?true:t.status===filterStatus)
+.filter(t=>t.due_date === activeDay)
 .filter(t=>t.title.toLowerCase().includes(search.toLowerCase()))
 
 setSelectedDayTasks(tasks)
@@ -56,23 +75,52 @@ setSelectedDayTasks(tasks)
 
 }
 
+/* REALTIME SUBSCRIPTION */
+
 useEffect(()=>{
+
 fetchAllTasks()
+
+const channel = supabase
+.channel("todos-realtime")
+.on(
+"postgres_changes",
+{event:"*",schema:"public",table:"todos"},
+()=>{
+fetchAllTasks()
+}
+)
+.subscribe()
+
+return ()=>{
+supabase.removeChannel(channel)
+}
+
 },[activeDay,search,filterCategory,filterStatus])
+
+
+
+/* TOGGLE STATUS */
 
 const toggleTaskStatus = async(task:any)=>{
 
 const newStatus =
 task.status==="completed" ? "pending":"completed"
 
-await supabase
+const {error} = await supabase
 .from("todos")
 .update({status:newStatus})
 .eq("id",task.id)
 
-fetchAllTasks()
+if(error){
+console.log("Update error:",error)
+}
 
 }
+
+
+
+/* CHANGE MONTH */
 
 const changeMonth = (offset:number)=>{
 
@@ -83,6 +131,9 @@ setViewDate(newDate)
 
 }
 
+
+/* CLICK DAY */
+
 const handleDayClick = (day:number)=>{
 
 const dateStr =
@@ -91,6 +142,9 @@ const dateStr =
 setActiveDay(dateStr)
 
 }
+
+
+/* DATE PICKER */
 
 const handleDatePicker = (e:any)=>{
 
@@ -101,21 +155,26 @@ setActiveDay(e.target.value)
 
 }
 
+
+/* CALENDAR CALCULATION */
+
 const daysInMonth =
 new Date(viewDate.getFullYear(),viewDate.getMonth()+1,0).getDate()
 
 const firstDayOfMonth =
 new Date(viewDate.getFullYear(),viewDate.getMonth(),1).getDay()
 
-/* Dashboard Stats */
+
+/* DASHBOARD STATS */
 
 const totalTasks = allTasks.length
 const completedTasks = allTasks.filter(t=>t.status==="completed").length
 const pendingTasks = allTasks.filter(t=>t.status==="pending").length
 const overdueTasks =
-allTasks.filter(t=>t.status!=="completed" && t.task_date < today).length
+allTasks.filter(t=>t.status!=="completed" && t.due_date < today).length
 
-/* Daily Progress */
+
+/* DAILY PROGRESS */
 
 const todayCompleted =
 selectedDayTasks.filter(t=>t.status==="completed").length
@@ -125,28 +184,16 @@ selectedDayTasks.length===0
 ?0
 :Math.round((todayCompleted/selectedDayTasks.length)*100)
 
+
+
 return(
 
 <div className="min-h-screen bg-[#F8FAFC] pb-36 font-sans text-slate-900">
 
-<nav className="sticky top-0 z-30 bg-white/70 backdrop-blur-xl px-8 pt-16 pb-6 border-b border-slate-100 flex justify-between items-center">
-
-<div>
-<h1 className="text-3xl font-black tracking-tighter">
-Schedule
-</h1>
-<p className="text-[10px] font-bold text-blue-500 uppercase">
-Analytics & Planning
-</p>
-</div>
-
-<div className="w-10 h-10 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600">
-<PieChart size={20}/>
-</div>
-
-</nav>
+<Header/>
 
 <main className="p-6 space-y-8">
+
 
 {/* DASHBOARD STATS */}
 
@@ -174,6 +221,7 @@ Analytics & Planning
 
 </section>
 
+
 {/* PROGRESS */}
 
 <section className="bg-white p-6 rounded-[2rem] border border-slate-100">
@@ -200,6 +248,7 @@ style={{width:`${progress}%`}}
 </div>
 
 </section>
+
 
 {/* CALENDAR */}
 
@@ -244,11 +293,13 @@ className="hidden"
 
 </div>
 
+
 <div className="grid grid-cols-7 text-center text-xs mb-2">
 {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>(
 <div key={d}>{d}</div>
 ))}
 </div>
+
 
 <div className="grid grid-cols-7 text-center">
 
@@ -261,10 +312,9 @@ const day = i+1
 const dateStr =
 `${viewDate.getFullYear()}-${String(viewDate.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
 
-const dayTasks = allTasks.filter(t=>t.task_date===dateStr)
+const dayTasks = allTasks.filter(t=>t.due_date===dateStr)
 
 const isSelected = activeDay===dateStr
-
 const isToday = today===dateStr
 
 return(
@@ -299,51 +349,6 @@ isSelected
 
 </section>
 
-{/* SEARCH */}
-
-<div className="px-2">
-
-<input
-type="text"
-placeholder="Search task..."
-value={search}
-onChange={(e)=>setSearch(e.target.value)}
-className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none"
-/>
-
-</div>
-
-{/* FILTER */}
-
-<div className="flex gap-2 flex-wrap px-2">
-
-<select
-value={filterCategory}
-onChange={(e)=>setFilterCategory(e.target.value)}
-className="bg-white border border-slate-200 rounded-xl px-3 text-sm"
->
-
-<option value="all">All</option>
-<option value="Work">💼 Work</option>
-<option value="Meeting">🗓️ Meeting</option>
-<option value="Personal">🏠 Personal</option>
-<option value="Urgent">🚨 Urgent</option>
-
-</select>
-
-<select
-value={filterStatus}
-onChange={(e)=>setFilterStatus(e.target.value)}
-className="bg-white border border-slate-200 rounded-xl px-3 text-sm"
->
-
-<option value="all">All</option>
-<option value="pending">Pending</option>
-<option value="completed">Completed</option>
-
-</select>
-
-</div>
 
 {/* TASK LIST */}
 
@@ -364,7 +369,7 @@ No plans for this day
 ):(selectedDayTasks.map(task=>{
 
 const isOverdue =
-task.status!=="completed" && task.task_date < today
+task.status!=="completed" && task.due_date < today
 
 return(
 
@@ -444,14 +449,18 @@ Home
 </span>
 </button>
 
-<button className="flex flex-col items-center text-blue-600">
+<button
+className="flex flex-col items-center text-blue-600"
+>
 <PieChart size={28}/>
 <span className="text-[9px] font-black uppercase">
 Dashboard
 </span>
 </button>
 
-<button className="flex flex-col items-center text-slate-300">
+<button
+className="flex flex-col items-center text-slate-300"
+>
 <Settings size={26}/>
 <span className="text-[9px] font-black uppercase">
 Menu
