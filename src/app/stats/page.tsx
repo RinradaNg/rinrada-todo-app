@@ -276,7 +276,12 @@ ref={dateInputRef}
 type="date"
 value={activeDay}
 onChange={handleDatePicker}
-className="hidden"
+style={{
+position:"absolute",
+opacity:0,
+width:0,
+height:0
+}}
 />
 
 <div className="flex gap-2">
