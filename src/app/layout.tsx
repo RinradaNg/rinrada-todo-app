@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next"; // เพิ่ม Viewport เข้ามาครับ
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,22 +12,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// 1. ตั้งค่า Viewport เพื่อให้แอปไม่เด้งไปมาและดูเต็มจอ
+// 1. เพิ่ม viewportFit: "cover" เพื่อให้แอปขยายเต็มพื้นที่จอ iPhone
 export const viewport: Viewport = {
   themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover", // บรรทัดนี้สำคัญที่สุดในการแก้ปัญหาแถบดำครับ
 };
 
-// 2. แก้ไข Metadata เพื่อลบแถบดำด้านบน
 export const metadata: Metadata = {
   title: "TaskMaster",
   description: "Vanness Plus Edition",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent", // ทำให้แถบสถานะโปร่งใสและเนื้อหาดันขึ้นไปสุด
+    statusBarStyle: "black-translucent", // ทำให้แถบสถานะโปร่งใส
     title: "TaskMaster",
   },
 };
