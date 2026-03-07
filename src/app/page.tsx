@@ -1,29 +1,62 @@
 "use client"
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Plus, CheckCircle2, Circle, Trash2, Home, PieChart, Settings, Loader2, Calendar } from 'lucide-react';
+import { Plus, CheckCircle2, Circle, Trash2, Home, PieChart, Settings, Loader2, Calendar, Search, UserPlus, Tag, Clock, Video } from 'lucide-react';
 
 export default function MobileAppDashboard() {
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [priority, setPriority] = useState('low');
-  
-  // 1. เพิ่มสถานะการเลือกวันที่ เพื่อรองรับนัดหมายวันอื่น/เดือนหน้า
+  const [category, setCategory] = useState('Work');
+  const [assignee, setAssignee] = useState('');
+  const [dueTime, setDueTime] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // ตัวกรองสถานะด่วน
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const fetchTasks = async () => {
-    // กรองงานตามวันที่เลือกเพื่อให้แต่ละวันมีเป้าหมายของตัวเอง
-    const { data } = await supabase
-      .from('todos')
-      .select('*')
-      .eq('task_date', selectedDate) 
-      .order('created_at', { ascending: false });
-    if (data) setTasks(data);
+    let query = supabase.from('todos').select('*').eq('task_date', selectedDate);
+    
+    if (searchQuery) {
+      query = query.ilike('title', `%${searchQuery}%`);
+    }
+    
+    const { data } = await query.order('created_at', { ascending: false });
+    if (data) {
+      // กรองข้อมูลในระดับ Client เพื่อความลื่นไหล
+      const filtered = data.filter(t => {
+        if (filterStatus === 'completed') return t.status === 'completed';
+        if (filterStatus === 'pending') return t.status === 'pending';
+        return true;
+      });
+      setTasks(filtered);
+    }
   };
 
-  useEffect(() => { fetchTasks(); }, [selectedDate]);
+  useEffect(() => { fetchTasks(); }, [selectedDate, searchQuery, filterStatus]);
 
+  const handleAddTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTask.trim()) return;
+    setIsAdding(true);
+    await supabase.from('todos').insert([{ 
+      title: newTask, 
+      status: 'pending',
+      priority,
+      category,
+      assignee,
+      due_time: dueTime,
+      task_date: selectedDate
+    }]);
+    setNewTask('');
+    setAssignee('');
+    setDueTime('');
+    fetchTasks();
+    setIsAdding(false);
+  };
+
+  // ฟังก์ชันลบงานและเปลี่ยนสถานะ (ใช้ตัวเดิม)
   const toggleStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     await supabase.from('todos').update({ status: nextStatus }).eq('id', id);
@@ -35,149 +68,128 @@ export default function MobileAppDashboard() {
     fetchTasks();
   };
 
-  const handleAddTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTask.trim()) return;
-    setIsAdding(true);
-    await supabase.from('todos').insert([{ 
-      title: newTask, 
-      status: 'pending',
-      priority: priority,
-      task_date: selectedDate // บันทึกงานลงในวันที่ที่เลือก
-    }]);
-    setNewTask('');
-    setPriority('low');
-    fetchTasks();
-    setIsAdding(false);
-  };
-
   const total = tasks.length;
   const completed = tasks.filter(t => t.status === 'completed').length;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-  const getPriorityColor = (p: string) => {
-    switch (p) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-orange-500';
-      default: return 'bg-blue-500';
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-slate-900">
+    <div className="min-h-screen bg-[#F8FAFC] pb-40 font-sans text-slate-900 selection:bg-blue-100">
       <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 pt-[var(--nav-pt)] pb-4 flex justify-between items-center shadow-sm">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-800 uppercase">TaskMaster</h1>
           <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">Vanness Plus</p>
         </div>
-        <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center font-black text-white text-xs shadow-lg shadow-slate-200">
-          RN
-        </div>
+        <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center font-black text-white text-xs shadow-lg shadow-slate-200">RN</div>
       </nav>
 
       <main className="p-6 max-w-md mx-auto space-y-6">
-        {/* กรอบบนสองอันที่คุณชอบ (คงเดิมทุกอย่าง) */}
+        {/* Dashboard Cards (คุณรินรดาชอบมาก ไม่ปรับขนาด) */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 transition-transform active:scale-95">
+          <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
             <h3 className="text-3xl font-black text-slate-800">{total}</h3>
           </div>
-          <div className="bg-blue-600 p-5 rounded-[2rem] shadow-xl shadow-blue-100 border border-blue-500 transition-transform active:scale-95">
+          <div className="bg-blue-600 p-5 rounded-[2rem] shadow-xl shadow-blue-100 border border-blue-500 text-white">
             <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-1">Success</p>
-            <h3 className="text-3xl font-black text-white">{percent}%</h3>
+            <h3 className="text-3xl font-black">{percent}%</h3>
           </div>
         </div>
 
-        {/* 2. ส่วนเลือกวันที่แบบเรียบง่าย (เพื่อสลับไปดูนัดเดือนหน้า) */}
-        <div className="relative flex items-center bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm">
-          <Calendar className="text-blue-500 mr-3" size={18} />
-          <input 
-            type="date" 
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="w-full bg-transparent border-none outline-none font-bold text-sm text-slate-600"
-          />
-        </div>
-
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50">
-          <form onSubmit={handleAddTask} className="space-y-5">
+        {/* Search & Date Picker */}
+        <div className="space-y-3">
+          <div className="relative flex items-center bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
+            <Search className="text-slate-300 ml-3" size={18} />
             <input 
               type="text" 
-              value={newTask}
-              onChange={(e) => setNewTask(e.target.value)}
-              placeholder="เป้าหมายของวันนี้คืออะไร?" 
-              className="w-full p-5 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 focus:ring-4 focus:ring-blue-500/10 outline-none text-base font-bold placeholder:text-slate-300 transition-all"
+              placeholder="ค้นหางานหรือคน..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent border-none outline-none p-3 font-bold text-sm"
             />
-            
-            <div className="flex flex-col gap-4">
-              <div className="flex justify-between items-center px-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Set Priority</span>
-                <div className="flex gap-3">
-                  {['high', 'medium', 'low'].map((p) => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => setPriority(p)}
-                      className={`w-4 h-4 rounded-full transition-all duration-300 ${priority === p ? `ring-4 ring-offset-2 scale-110 ${p === 'high' ? 'ring-red-500 bg-red-500' : p === 'medium' ? 'ring-orange-400 bg-orange-400' : 'ring-blue-500 bg-blue-500'}` : 'bg-slate-200'}`}
-                    />
-                  ))}
-                </div>
-              </div>
-              <button disabled={isAdding} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-sm transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-2xl shadow-slate-300">
-                {isAdding ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} strokeWidth={3} />} ADD TASK
-              </button>
-            </div>
-          </form>
+          </div>
+          <div className="flex items-center bg-white p-4 rounded-[2rem] border border-slate-100 shadow-sm">
+            <Calendar className="text-blue-500 mr-3" size={18} />
+            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full bg-transparent border-none outline-none font-bold text-sm text-slate-600" />
+          </div>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex justify-between items-center px-3 mb-2">
-            <h2 className="font-black text-slate-900 text-xs tracking-[0.2em] uppercase italic">My Workflow</h2>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{completed}/{total} Done</span>
+        {/* Add Task Form with Meeting & Assignee */}
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50 space-y-4 transition-all">
+          <input 
+            type="text" 
+            value={newTask}
+            onChange={(e) => setNewTask(e.target.value)}
+            placeholder="เพิ่มงานหรือนัดหมายใหม่..." 
+            className="w-full p-5 rounded-2xl bg-slate-50 border-none ring-1 ring-slate-100 font-bold"
+          />
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
+              <Tag size={14} className="text-slate-400 mr-2" />
+              <select value={category} onChange={(e) => setCategory(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-black uppercase w-full">
+                <option value="Work">💼 Work</option>
+                <option value="Meeting">🗓️ Meeting</option>
+                <option value="Personal">🏠 Personal</option>
+                <option value="Urgent">🚨 Urgent</option>
+              </select>
+            </div>
+            <div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
+              <Clock size={14} className="text-slate-400 mr-2" />
+              <input type="time" value={dueTime} onChange={(e) => setDueTime(e.target.value)} className="bg-transparent border-none outline-none text-[10px] font-black w-full" />
+            </div>
+          </div>
+          
+          <div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
+            <UserPlus size={14} className="text-slate-400 mr-2" />
+            <input type="text" placeholder="ระบุผู้เกี่ยวข้อง..." value={assignee} onChange={(e) => setAssignee(e.target.value)} className="bg-transparent border-none outline-none text-[11px] font-black w-full" />
           </div>
 
-          {tasks.length === 0 ? (
-            <div className="py-16 text-center text-slate-200 font-black text-xs uppercase tracking-widest italic">ไม่มีรายการสำหรับวันนี้</div>
-          ) : (
-            tasks.map((task) => (
-              <div key={task.id} className="bg-white p-5 rounded-[2rem] flex items-center justify-between shadow-sm border border-slate-50 active:scale-[0.98] transition-all">
-                <div className="flex items-center gap-5 flex-1 overflow-hidden">
-                  <button onClick={() => toggleStatus(task.id, task.status)} className="flex-shrink-0 transition-transform active:scale-75">
-                    {task.status === 'completed' ? (
-                      <div className="bg-emerald-500 p-1 rounded-full text-white shadow-lg shadow-emerald-500/20"><CheckCircle2 size={24} /></div>
-                    ) : (
-                      <Circle className="text-slate-200" size={32} />
-                    )}
-                  </button>
-                  <div className="flex items-center gap-4 truncate">
-                    <div className={`w-2 h-7 rounded-full flex-shrink-0 ${getPriorityColor(task.priority)} shadow-sm`} />
-                    <span className={`text-lg font-black tracking-tight truncate transition-all ${task.status === 'completed' ? 'line-through text-slate-300 italic' : 'text-slate-800'}`}>
-                      {task.title}
-                    </span>
+          <button disabled={isAdding} onClick={handleAddTask} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black text-xs tracking-widest active:scale-95 transition-all flex items-center justify-center gap-2 shadow-xl">
+            {isAdding ? <Loader2 className="animate-spin" size={20} /> : <Plus size={20} strokeWidth={3} />} ADD SCHEDULE
+          </button>
+        </div>
+
+        {/* Quick Filter Tabs (เพิ่มความง่ายในการใช้งาน) */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
+          {['all', 'pending', 'completed'].map((f) => (
+            <button key={f} onClick={() => setFilterStatus(f)} className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${filterStatus === f ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-50'}`}>
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Workflow List */}
+        <div className="space-y-4">
+          {tasks.map((task) => (
+            <div key={task.id} className={`p-5 rounded-[2.2rem] flex items-center justify-between shadow-sm border border-slate-50 active:scale-[0.98] transition-all ${task.category === 'Meeting' ? 'bg-blue-50/30' : 'bg-white'}`}>
+              <div className="flex items-center gap-4 flex-1 overflow-hidden">
+                <button onClick={() => toggleStatus(task.id, task.status)} className="active:scale-75 transition-transform">
+                  {task.status === 'completed' ? <CheckCircle2 className="text-emerald-500" size={28} /> : <Circle className="text-slate-200" size={28} />}
+                </button>
+                <div className="flex flex-col truncate">
+                  <span className={`text-base font-black truncate ${task.status === 'completed' ? 'line-through text-slate-300 italic' : 'text-slate-800'}`}>
+                    {task.title}
+                  </span>
+                  <div className="flex gap-2 items-center mt-1">
+                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-md uppercase ${task.category === 'Meeting' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-500'}`}>{task.category}</span>
+                    {task.due_time && <span className="text-[9px] font-black text-slate-400 flex items-center gap-1"><Clock size={10} /> {task.due_time}</span>}
+                    {task.assignee && <span className="text-[9px] font-black text-blue-500 flex items-center gap-1"><UserPlus size={10} /> {task.assignee}</span>}
                   </div>
                 </div>
-                <button onClick={() => deleteTask(task.id)} className="p-3 text-slate-200 hover:text-red-500 transition-colors ml-2">
-                  <Trash2 size={20} />
-                </button>
               </div>
-            ))
-          )}
+              <button onClick={() => deleteTask(task.id)} className="p-2 text-slate-100 hover:text-red-400 transition-colors">
+                <Trash2 size={20} />
+              </button>
+            </div>
+          ))}
         </div>
       </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-12 pt-5 pb-10 flex justify-between items-center z-40 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-        <button className="flex flex-col items-center gap-1.5 text-blue-600 transition-transform active:scale-90">
-          <Home size={26} strokeWidth={3} />
-          <span className="text-[9px] font-black uppercase tracking-tighter">Home</span>
-        </button>
-        <button className="flex flex-col items-center gap-1.5 text-slate-300 transition-transform active:scale-90">
-          <PieChart size={26} strokeWidth={3} />
-          <span className="text-[9px] font-black uppercase tracking-tighter">Stats</span>
-        </button>
-        <button className="flex flex-col items-center gap-1.5 text-slate-300 transition-transform active:scale-90">
-          <Settings size={26} strokeWidth={3} />
-          <span className="text-[9px] font-black uppercase tracking-tighter">Menu</span>
-        </button>
+      {/* Navigation Footer */}
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center z-40 shadow-2xl">
+        <button className="flex flex-col items-center gap-1.5 text-blue-600 active:scale-90 transition-transform"><Home size={24} strokeWidth={3} /><span className="text-[9px] font-black uppercase tracking-widest">Home</span></button>
+        <button className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform"><PieChart size={24} strokeWidth={3} /><span className="text-[9px] font-black uppercase tracking-widest">Stats</span></button>
+        <button className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform"><Settings size={24} strokeWidth={3} /><span className="text-[9px] font-black uppercase tracking-widest">Menu</span></button>
       </footer>
     </div>
   );
