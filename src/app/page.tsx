@@ -57,7 +57,7 @@ export default function MobileAppDashboard() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-slate-900">
       {/* 1. ปรับ Header ให้เว้นระยะจากรอยบาก (Padding Top) */}
-      <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 pt-14 pb-4 flex justify-between items-center shadow-sm">
+      <nav className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-100 px-8 pt-[var(--nav-pt)] pb-4 flex justify-between items-center shadow-sm">
         <div>
           <h1 className="text-xl font-black tracking-tight text-slate-800 uppercase">TaskMaster</h1>
           <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">Vanness Plus</p>
