@@ -1,9 +1,11 @@
 "use client"
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // เพิ่มการเชื่อมต่อหน้า
 import { supabase } from '@/lib/supabase';
 import { Plus, CheckCircle2, Circle, Trash2, Home, PieChart, Settings, Loader2, Calendar, Search, UserPlus, Tag, Clock, Video } from 'lucide-react';
 
 export default function MobileAppDashboard() {
+  const router = useRouter(); // สร้างตัวแปรควบคุมการเปลี่ยนหน้า
   const [tasks, setTasks] = useState<any[]>([]);
   const [newTask, setNewTask] = useState('');
   const [isAdding, setIsAdding] = useState(false);
@@ -12,7 +14,7 @@ export default function MobileAppDashboard() {
   const [assignee, setAssignee] = useState('');
   const [dueTime, setDueTime] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all'); // ตัวกรองสถานะด่วน
+  const [filterStatus, setFilterStatus] = useState('all'); 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   const fetchTasks = async () => {
@@ -24,7 +26,6 @@ export default function MobileAppDashboard() {
     
     const { data } = await query.order('created_at', { ascending: false });
     if (data) {
-      // กรองข้อมูลในระดับ Client เพื่อความลื่นไหล
       const filtered = data.filter(t => {
         if (filterStatus === 'completed') return t.status === 'completed';
         if (filterStatus === 'pending') return t.status === 'pending';
@@ -56,7 +57,6 @@ export default function MobileAppDashboard() {
     setIsAdding(false);
   };
 
-  // ฟังก์ชันลบงานและเปลี่ยนสถานะ (ใช้ตัวเดิม)
   const toggleStatus = async (id: string, currentStatus: string) => {
     const nextStatus = currentStatus === 'completed' ? 'pending' : 'completed';
     await supabase.from('todos').update({ status: nextStatus }).eq('id', id);
@@ -83,7 +83,6 @@ export default function MobileAppDashboard() {
       </nav>
 
       <main className="p-6 max-w-md mx-auto space-y-6">
-        {/* Dashboard Cards (คุณรินรดาชอบมาก ไม่ปรับขนาด) */}
         <div className="grid grid-cols-2 gap-4">
           <div className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total</p>
@@ -95,7 +94,6 @@ export default function MobileAppDashboard() {
           </div>
         </div>
 
-        {/* Search & Date Picker */}
         <div className="space-y-3">
           <div className="relative flex items-center bg-white p-1 rounded-2xl border border-slate-100 shadow-sm">
             <Search className="text-slate-300 ml-3" size={18} />
@@ -113,7 +111,6 @@ export default function MobileAppDashboard() {
           </div>
         </div>
 
-        {/* Add Task Form with Meeting & Assignee */}
         <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-50 space-y-4 transition-all">
           <input 
             type="text" 
@@ -149,7 +146,6 @@ export default function MobileAppDashboard() {
           </button>
         </div>
 
-        {/* Quick Filter Tabs (เพิ่มความง่ายในการใช้งาน) */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2">
           {['all', 'pending', 'completed'].map((f) => (
             <button key={f} onClick={() => setFilterStatus(f)} className={`px-5 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all ${filterStatus === f ? 'bg-slate-900 text-white shadow-lg' : 'bg-white text-slate-400 border border-slate-50'}`}>
@@ -158,7 +154,6 @@ export default function MobileAppDashboard() {
           ))}
         </div>
 
-        {/* Workflow List */}
         <div className="space-y-4">
           {tasks.map((task) => (
             <div key={task.id} className={`p-5 rounded-[2.2rem] flex items-center justify-between shadow-sm border border-slate-50 active:scale-[0.98] transition-all ${task.category === 'Meeting' ? 'bg-blue-50/30' : 'bg-white'}`}>
@@ -185,11 +180,23 @@ export default function MobileAppDashboard() {
         </div>
       </main>
 
-      {/* Navigation Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center z-40 shadow-2xl">
-        <button className="flex flex-col items-center gap-1.5 text-blue-600 active:scale-90 transition-transform"><Home size={24} strokeWidth={3} /><span className="text-[9px] font-black uppercase tracking-widest">Home</span></button>
-        <button className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform"><PieChart size={24} strokeWidth={3} /><span className="text-[9px] font-black uppercase tracking-widest">Stats</span></button>
-        <button className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform"><Settings size={24} strokeWidth={3} /><span className="text-[9px] font-black uppercase tracking-widest">Menu</span></button>
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-slate-100 px-12 pt-5 pb-10 flex justify-between items-center z-40 shadow-2xl">
+        <button className="flex flex-col items-center gap-1.5 text-blue-600 active:scale-90 transition-transform">
+          <Home size={24} strokeWidth={3} />
+          <span className="text-[9px] font-black uppercase tracking-widest">Home</span>
+        </button>
+        {/* แก้ไขปุ่ม Stats ให้กดสลับไปหน้า Dashboard */}
+        <button 
+          onClick={() => router.push('/stats')} 
+          className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform"
+        >
+          <PieChart size={24} strokeWidth={3} />
+          <span className="text-[9px] font-black uppercase tracking-widest">Dashboard</span>
+        </button>
+        <button className="flex flex-col items-center gap-1.5 text-slate-300 active:scale-90 transition-transform">
+          <Settings size={24} strokeWidth={3} />
+          <span className="text-[9px] font-black uppercase tracking-widest">Menu</span>
+        </button>
       </footer>
     </div>
   );
