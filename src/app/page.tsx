@@ -386,28 +386,30 @@ className="p-2 text-slate-200 hover:text-red-400 transition"
 
 {/* FOOTER */}
 
-<footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-10 pt-4 pb-7 flex justify-between items-center shadow-xl">
-
-<button className="flex flex-col items-center text-blue-600">
-<Home size={22}/>
-<span className="text-[9px] font-bold uppercase tracking-widest">Home</span>
-</button>
+<footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center">
 
 <button
-onClick={() => router.push('/stats')}
-className="flex flex-col items-center text-slate-400"
+onClick={()=>router.push('/')}
+className="flex flex-col items-center text-slate-300"
 >
-
-<PieChart size={22}/>
-<span className="text-[9px] font-bold uppercase tracking-widest">Dashboard</span>
-
+<Home size={26}/>
+<span className="text-[9px] font-black uppercase">
+Home
+</span>
 </button>
 
-<button className="flex flex-col items-center text-slate-400">
+<button className="flex flex-col items-center text-blue-600">
+<PieChart size={28}/>
+<span className="text-[9px] font-black uppercase">
+Dashboard
+</span>
+</button>
 
-<Settings size={22}/>
-<span className="text-[9px] font-bold uppercase tracking-widest">Menu</span>
-
+<button className="flex flex-col items-center text-slate-300">
+<Settings size={26}/>
+<span className="text-[9px] font-black uppercase">
+Menu
+</span>
 </button>
 
 </footer>
