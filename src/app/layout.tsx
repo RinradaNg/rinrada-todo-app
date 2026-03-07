@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next"; // เพิ่ม Viewport เข้ามาครับ
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -12,13 +12,22 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-// แก้ไขส่วนนี้เพื่อให้รองรับการเป็นแอปมือถือ (PWA)
+// 1. ตั้งค่า Viewport เพื่อให้แอปไม่เด้งไปมาและดูเต็มจอ
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+// 2. แก้ไข Metadata เพื่อลบแถบดำด้านบน
 export const metadata: Metadata = {
   title: "TaskMaster",
-  description: "My Personal Task App",
+  description: "Vanness Plus Edition",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent", // ทำให้แถบสถานะโปร่งใสและเนื้อหาดันขึ้นไปสุด
     title: "TaskMaster",
   },
 };
