@@ -109,7 +109,7 @@ return (
 <div className="text-center mb-6 text-white">
 
 <h1 className="text-3xl font-bold">
-Task App
+To-Do List App
 </h1>
 
 <p className="text-sm text-white/90 mt-1">
