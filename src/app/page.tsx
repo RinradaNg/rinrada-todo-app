@@ -42,16 +42,21 @@ new Date().toISOString().split("T")[0]
 
 const today = new Date().toISOString().split("T")[0]
 
-/* GET USER */
+/* CHECK USER LOGIN */
 
 useEffect(()=>{
 
-const getUser = async ()=>{
+const checkUser = async ()=>{
 
 const { data,error } = await supabase.auth.getUser()
 
 if(error){
-console.error("User error:",error)
+console.error(error)
+}
+
+if(!data.user){
+router.push("/login")
+return
 }
 
 setUser(data.user)
@@ -59,9 +64,9 @@ setLoading(false)
 
 }
 
-getUser()
+checkUser()
 
-},[])
+},[router])
 
 /* FETCH TASKS */
 
@@ -79,8 +84,7 @@ if(searchQuery){
 query = query.ilike("title",`%${searchQuery}%`)
 }
 
-const { data,error } = await query
-.order("due_time",{ascending:true})
+const { data,error } = await query.order("due_time",{ascending:true})
 
 if(error){
 console.error("Fetch error:",error)
@@ -187,12 +191,10 @@ const nextStatus = currentStatus === "completed"
 ? "pending"
 : "completed"
 
-const { error } = await supabase
+await supabase
 .from("todos")
 .update({status:nextStatus})
 .eq("id",id)
-
-if(error) console.error(error)
 
 }
 
@@ -200,12 +202,10 @@ if(error) console.error(error)
 
 const deleteTask = async(id:string)=>{
 
-const { error } = await supabase
+await supabase
 .from("todos")
 .delete()
 .eq("id",id)
-
-if(error) console.error(error)
 
 }
 
@@ -228,16 +228,6 @@ if(loading){
 return(
 <div className="min-h-screen flex items-center justify-center">
 <Loader2 className="animate-spin"/>
-</div>
-)
-
-}
-
-if(!user){
-
-return(
-<div className="min-h-screen flex items-center justify-center text-sm text-slate-400">
-Please login
 </div>
 )
 
@@ -457,21 +447,17 @@ Home
 onClick={()=>router.push("/stats")}
 className="flex flex-col items-center text-slate-300"
 >
-
 <PieChart size={26}/>
 <span className="text-[9px] font-black uppercase">
 Dashboard
 </span>
-
 </button>
 
 <button className="flex flex-col items-center text-slate-300">
-
 <Settings size={26}/>
 <span className="text-[9px] font-black uppercase">
 Menu
 </span>
-
 </button>
 
 </footer>
