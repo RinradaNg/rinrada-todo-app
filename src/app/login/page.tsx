@@ -5,28 +5,28 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
 
-export default function LoginPage(){
+export default function LoginPage() {
 
 const router = useRouter()
 
-const [tab,setTab] = useState<"login"|"register">("login")
+const [tab, setTab] = useState<"login" | "register">("login")
 
-const [email,setEmail] = useState("")
-const [password,setPassword] = useState("")
-const [confirmPassword,setConfirmPassword] = useState("")
+const [email, setEmail] = useState("")
+const [password, setPassword] = useState("")
+const [confirmPassword, setConfirmPassword] = useState("")
 
-const [showPassword,setShowPassword] = useState(false)
-const [loading,setLoading] = useState(false)
+const [showPassword, setShowPassword] = useState(false)
+const [loading, setLoading] = useState(false)
 
 /* AUTO LOGIN */
 
-useEffect(()=>{
+useEffect(() => {
 
-const checkUser = async ()=>{
+const checkUser = async () => {
 
 const { data } = await supabase.auth.getUser()
 
-if(data.user){
+if (data.user) {
 router.push("/")
 }
 
@@ -34,13 +34,13 @@ router.push("/")
 
 checkUser()
 
-},[])
+}, [router])
 
 /* LOGIN */
 
-const handleLogin = async ()=>{
+const handleLogin = async () => {
 
-if(!email || !password){
+if (!email || !password) {
 alert("Please enter email and password")
 return
 }
@@ -52,11 +52,13 @@ email,
 password
 })
 
-if(error){
+if (error) {
 alert("Invalid email or password")
 setLoading(false)
 return
 }
+
+setLoading(false)
 
 router.push("/")
 
@@ -64,14 +66,14 @@ router.push("/")
 
 /* REGISTER */
 
-const handleRegister = async ()=>{
+const handleRegister = async () => {
 
-if(!email || !password){
+if (!email || !password) {
 alert("Please fill all fields")
 return
 }
 
-if(password !== confirmPassword){
+if (password !== confirmPassword) {
 alert("Passwords do not match")
 return
 }
@@ -83,7 +85,7 @@ email,
 password
 })
 
-if(error){
+if (error) {
 alert(error.message)
 setLoading(false)
 return
@@ -98,7 +100,7 @@ setLoading(false)
 
 }
 
-return(
+return (
 
 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-900 via-blue-800 to-purple-800 p-6">
 
@@ -123,28 +125,26 @@ Login or create an account
 <div className="flex bg-gray-200 rounded-lg p-1">
 
 <button
-onClick={()=>setTab("login")}
+onClick={() => setTab("login")}
 className={`flex-1 text-sm py-2 rounded-md font-semibold ${
 tab === "login"
 ? "bg-white shadow text-black"
 : "text-gray-600"
 }`}
-
 >
-
-Login </button>
+Login
+</button>
 
 <button
-onClick={()=>setTab("register")}
+onClick={() => setTab("register")}
 className={`flex-1 text-sm py-2 rounded-md font-semibold ${
 tab === "register"
 ? "bg-white shadow text-black"
 : "text-gray-600"
 }`}
-
 >
-
-Register </button>
+Register
+</button>
 
 </div>
 
@@ -152,13 +152,13 @@ Register </button>
 
 <div className="flex items-center bg-gray-100 border border-gray-300 rounded-lg px-3 py-2">
 
-<Mail size={16} className="text-gray-600 mr-2"/>
+<Mail size={16} className="text-gray-600 mr-2" />
 
 <input
 type="email"
 placeholder="Email"
 value={email}
-onChange={(e)=>setEmail(e.target.value)}
+onChange={(e) => setEmail(e.target.value)}
 className="bg-transparent outline-none w-full text-sm text-gray-900"
 />
 
@@ -168,23 +168,22 @@ className="bg-transparent outline-none w-full text-sm text-gray-900"
 
 <div className="flex items-center bg-gray-100 border border-gray-300 rounded-lg px-3 py-2">
 
-<Lock size={16} className="text-gray-600 mr-2"/>
+<Lock size={16} className="text-gray-600 mr-2" />
 
 <input
 type={showPassword ? "text" : "password"}
 placeholder="Password"
 value={password}
-onChange={(e)=>setPassword(e.target.value)}
+onChange={(e) => setPassword(e.target.value)}
 className="bg-transparent outline-none w-full text-sm text-gray-900"
 />
 
 <button
-onClick={()=>setShowPassword(!showPassword)}
+onClick={() => setShowPassword(!showPassword)}
 className="text-gray-600"
-
 >
 
-{showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
+{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
 
 </button>
 
@@ -196,13 +195,13 @@ className="text-gray-600"
 
 <div className="flex items-center bg-gray-100 border border-gray-300 rounded-lg px-3 py-2">
 
-<Lock size={16} className="text-gray-600 mr-2"/>
+<Lock size={16} className="text-gray-600 mr-2" />
 
 <input
 type="password"
 placeholder="Confirm password"
 value={confirmPassword}
-onChange={(e)=>setConfirmPassword(e.target.value)}
+onChange={(e) => setConfirmPassword(e.target.value)}
 className="bg-transparent outline-none w-full text-sm text-gray-900"
 />
 
@@ -216,11 +215,10 @@ className="bg-transparent outline-none w-full text-sm text-gray-900"
 onClick={tab === "login" ? handleLogin : handleRegister}
 disabled={loading}
 className="w-full bg-indigo-700 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-indigo-800 transition flex items-center justify-center"
-
 >
 
 {loading
-? <Loader2 className="animate-spin" size={16}/>
+? <Loader2 className="animate-spin" size={16} />
 : tab === "login"
 ? "Login"
 : "Create Account"}
