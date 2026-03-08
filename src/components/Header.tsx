@@ -172,7 +172,7 @@ return (
 <div>
 
 <h1 className="text-xl font-black tracking-tight text-slate-800">
-TaskMaster
+To-Do List
 </h1>
 
 <p className="text-[10px] font-bold text-blue-600 tracking-widest uppercase mt-0.5">
