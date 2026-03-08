@@ -17,36 +17,27 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
           response.cookies.set({ name, value, ...options })
         },
         remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value: '', ...options })
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          })
           response.cookies.set({ name, value: '', ...options })
         },
       },
     }
   )
 
+  // ใช้ getUser() เพื่อความปลอดภัยสูงสุดในการเช็คฝั่ง Server
   const { data: { user } } = await supabase.auth.getUser()
 
-  // ถ้าไม่มี user (ไม่ได้ล็อกอิน) และไม่ใช่หน้า login ให้ส่งกลับไปหน้า login
-  if (!user && !request.nextUrl.pathname.startsWith('/login')) {
+  const isLoginPage = request.nextUrl.pathname.startsWith('/login')
+
+  // กรณีที่ 1: ไม่มี User และไม่ได้อยู่ที่หน้า Login -> ให้ไปหน้า Login
+  if (!user && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // ถ้าล็อกอินแล้วแต่พยายามจะเข้าหน้า login ให้ส่งไปหน้า dashboard (หน้าแรก)
-  if (user && request.nextUrl.pathname.startsWith('/login')) {
+  // กรณีที่ 2: มี User แล้วแต่พยายามจะเข้าหน้า Login -> ให้ไปหน้าหลัก
+  if (user && isLoginPage) {
     return NextResponse.redirect(new URL('/', request.url))
   }
 
@@ -54,5 +45,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * ดักจับทุก Path ยกเว้น:
+     * - api (เดี๋ยวจะติดเรื่องการเรียกใช้งาน API)
+     * - _next/static (ไฟล์ static ของ Next.js)
+     * - _next/image (ระบบจัดการรูปภาพ)
+     * - favicon.ico, public files
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$).*)',
+  ],
 }
