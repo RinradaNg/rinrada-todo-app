@@ -40,11 +40,11 @@ const dateInputRef = useRef<HTMLInputElement>(null)
 
 const today = new Date().toISOString().split("T")[0]
 
-/* CHECK USER LOGIN */
+/* GET USER */
 
 useEffect(()=>{
 
-const checkUser = async ()=>{
+const getUser = async ()=>{
 
 const {data,error} = await supabase.auth.getUser()
 
@@ -62,7 +62,7 @@ setLoading(false)
 
 }
 
-checkUser()
+getUser()
 
 },[router])
 
@@ -96,7 +96,7 @@ setAllTasks(data)
 
 const tasks = data
 .filter(t=>t.due_date === activeDay)
-.filter(t=>t.title.toLowerCase().includes(search.toLowerCase()))
+.filter(t=>(t.title || "").toLowerCase().includes(search.toLowerCase()))
 
 setSelectedDayTasks(tasks)
 
@@ -245,8 +245,6 @@ selectedDayTasks.length===0
 
 
 
-/* LOADING SCREEN */
-
 if(loading){
 
 return(
@@ -266,8 +264,6 @@ return(
 <Header/>
 
 <main className="p-6 space-y-8">
-
-
 
 {/* DASHBOARD STATS */}
 
@@ -340,7 +336,186 @@ style={{width:`${progress}%`}}
 
 </section>
 
-{/* (ส่วน Calendar และ Task list ของคุณสามารถใช้ต่อได้เหมือนเดิม) */}
+
+
+{/* CALENDAR */}
+
+<section className="bg-white p-6 rounded-[2rem] border border-slate-100">
+
+<div className="flex justify-between items-center mb-6">
+
+<h2 className="flex items-center gap-2 font-black">
+
+<CalendarIcon
+size={18}
+className="cursor-pointer text-blue-500"
+onClick={()=>dateInputRef.current?.click()}
+/>
+
+{viewDate.toLocaleString("default",{
+month:"long",
+year:"numeric"
+})}
+
+</h2>
+
+<input
+ref={dateInputRef}
+type="date"
+value={activeDay}
+onChange={handleDatePicker}
+className="hidden"
+/>
+
+<div className="flex gap-2">
+
+<button onClick={()=>changeMonth(-1)}>
+<ChevronLeft size={18}/>
+</button>
+
+<button onClick={()=>changeMonth(1)}>
+<ChevronRight size={18}/>
+</button>
+
+</div>
+
+</div>
+
+
+
+<div className="grid grid-cols-7 text-center text-xs mb-2">
+
+{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
+<div key={d}>{d}</div>
+))}
+
+</div>
+
+
+
+<div className="grid grid-cols-7 text-center">
+
+{[...Array(firstDayOfMonth)].map((_,i)=><div key={i}/>)}
+
+{[...Array(daysInMonth)].map((_,i)=>{
+
+const day = i+1
+
+const dateStr =
+`${viewDate.getFullYear()}-${String(viewDate.getMonth()+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+
+const dayTasks =
+allTasks.filter(t=>t.due_date===dateStr)
+
+const isSelected = activeDay===dateStr
+const isToday = today===dateStr
+
+return(
+
+<button
+key={day}
+onClick={()=>handleDayClick(day)}
+className={`relative w-11 h-11 mx-auto rounded-2xl flex items-center justify-center text-sm font-black transition-all
+${isSelected
+?"bg-blue-600 text-white"
+:isToday
+?"bg-blue-50 text-blue-600 border border-blue-100"
+:"text-slate-600 hover:bg-slate-50"
+}`}
+>
+
+{day}
+
+{dayTasks.length>0 && !isSelected &&(
+
+<div className="absolute bottom-1 text-[9px] font-black text-blue-500">
+{dayTasks.length}
+</div>
+
+)}
+
+</button>
+
+)
+
+})}
+
+</div>
+
+</section>
+
+
+
+{/* TASK LIST */}
+
+<section className="space-y-4">
+
+{selectedDayTasks.length===0?(
+
+<div className="bg-white p-10 rounded-[2rem] text-center border border-slate-100">
+
+<Star size={32} className="mx-auto mb-4 text-slate-300"/>
+
+<p className="text-xs text-slate-400">
+No plans for this day
+</p>
+
+</div>
+
+):(selectedDayTasks.map(task=>{
+
+const isOverdue =
+task.status!=="completed" && task.due_date < today
+
+return(
+
+<div
+key={task.id}
+className="bg-white p-5 rounded-[2rem] flex justify-between items-center border border-slate-100"
+>
+
+<div>
+
+<span className={`font-bold
+${task.status==="completed"
+?"line-through text-slate-300":""
+}`}>
+{task.title}
+</span>
+
+<div className="flex gap-3 text-xs text-slate-400 mt-1">
+
+<div className="flex items-center gap-1">
+<Clock size={12}/>
+{task.due_time || "Flexible"}
+</div>
+
+{isOverdue &&(
+<span className="text-red-500 font-bold">
+Overdue
+</span>
+)}
+
+</div>
+
+</div>
+
+<button
+onClick={()=>toggleTaskStatus(task)}
+className={`w-6 h-6 rounded-full border-2
+${task.status==="completed"
+?"bg-emerald-500 border-emerald-500"
+:"border-slate-300"
+}`}
+/>
+
+</div>
+
+)
+
+}))}
+
+</section>
 
 </main>
 

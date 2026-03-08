@@ -3,14 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
-
-import {
-Mail,
-Lock,
-Eye,
-EyeOff,
-Loader2
-} from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react"
 
 export default function LoginPage(){
 
@@ -21,6 +14,7 @@ const [tab,setTab] = useState<"login"|"register">("login")
 const [email,setEmail] = useState("")
 const [password,setPassword] = useState("")
 const [confirmPassword,setConfirmPassword] = useState("")
+
 const [showPassword,setShowPassword] = useState(false)
 const [loading,setLoading] = useState(false)
 
@@ -46,6 +40,11 @@ checkUser()
 
 const handleLogin = async ()=>{
 
+if(!email || !password){
+alert("Please enter email and password")
+return
+}
+
 setLoading(true)
 
 const { error } = await supabase.auth.signInWithPassword({
@@ -54,7 +53,7 @@ password
 })
 
 if(error){
-alert(error.message)
+alert("Invalid email or password")
 setLoading(false)
 return
 }
@@ -66,6 +65,11 @@ router.push("/")
 /* REGISTER */
 
 const handleRegister = async ()=>{
+
+if(!email || !password){
+alert("Please fill all fields")
+return
+}
 
 if(password !== confirmPassword){
 alert("Passwords do not match")
@@ -85,44 +89,12 @@ setLoading(false)
 return
 }
 
-alert("Account created!")
+alert("Account created! Please login.")
+
 setTab("login")
+setPassword("")
+setConfirmPassword("")
 setLoading(false)
-
-}
-
-/* GOOGLE LOGIN */
-
-const handleGoogle = async ()=>{
-
-await supabase.auth.signInWithOAuth({
-provider:"google",
-options:{
-redirectTo:"http://localhost:3000/auth/callback"
-}
-})
-
-}
-
-/* FORGOT PASSWORD */
-
-const handleForgotPassword = async ()=>{
-
-if(!email){
-alert("Please enter your email first")
-return
-}
-
-const { error } = await supabase.auth.resetPasswordForEmail(email,{
-redirectTo:"http://localhost:3000/reset-password"
-})
-
-if(error){
-alert(error.message)
-return
-}
-
-alert("Password reset link sent to your email")
 
 }
 
@@ -132,21 +104,17 @@ return(
 
 <div className="w-full max-w-xs">
 
-{/* TITLE */}
-
 <div className="text-center mb-6 text-white">
 
 <h1 className="text-3xl font-bold">
-Welcome
+Task App
 </h1>
 
 <p className="text-sm text-white/90 mt-1">
-Sign in or create an account
+Login or create an account
 </p>
 
 </div>
-
-{/* CARD */}
 
 <div className="bg-white p-6 rounded-2xl shadow-2xl space-y-4">
 
@@ -161,9 +129,10 @@ tab === "login"
 ? "bg-white shadow text-black"
 : "text-gray-600"
 }`}
+
 >
-Login
-</button>
+
+Login </button>
 
 <button
 onClick={()=>setTab("register")}
@@ -172,9 +141,10 @@ tab === "register"
 ? "bg-white shadow text-black"
 : "text-gray-600"
 }`}
+
 >
-Register
-</button>
+
+Register </button>
 
 </div>
 
@@ -189,7 +159,7 @@ type="email"
 placeholder="Email"
 value={email}
 onChange={(e)=>setEmail(e.target.value)}
-className="bg-transparent outline-none w-full text-sm text-gray-900 placeholder-gray-500"
+className="bg-transparent outline-none w-full text-sm text-gray-900"
 />
 
 </div>
@@ -205,12 +175,13 @@ type={showPassword ? "text" : "password"}
 placeholder="Password"
 value={password}
 onChange={(e)=>setPassword(e.target.value)}
-className="bg-transparent outline-none w-full text-sm text-gray-900 placeholder-gray-500"
+className="bg-transparent outline-none w-full text-sm text-gray-900"
 />
 
 <button
 onClick={()=>setShowPassword(!showPassword)}
 className="text-gray-600"
+
 >
 
 {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
@@ -218,25 +189,6 @@ className="text-gray-600"
 </button>
 
 </div>
-
-{/* FORGOT PASSWORD */}
-
-{tab === "login" && (
-
-<div className="text-right -mt-2">
-
-<button
-onClick={handleForgotPassword}
-className="text-xs text-indigo-700 font-medium"
->
-
-Forgot password?
-
-</button>
-
-</div>
-
-)}
 
 {/* CONFIRM PASSWORD */}
 
@@ -258,12 +210,13 @@ className="bg-transparent outline-none w-full text-sm text-gray-900"
 
 )}
 
-{/* MAIN BUTTON */}
+{/* BUTTON */}
 
 <button
 onClick={tab === "login" ? handleLogin : handleRegister}
 disabled={loading}
 className="w-full bg-indigo-700 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-indigo-800 transition flex items-center justify-center"
+
 >
 
 {loading
@@ -271,36 +224,6 @@ className="w-full bg-indigo-700 text-white py-2.5 rounded-lg font-semibold text-
 : tab === "login"
 ? "Login"
 : "Create Account"}
-
-</button>
-
-{/* DIVIDER */}
-
-<div className="flex items-center gap-2">
-
-<div className="flex-1 h-[1px] bg-gray-300"/>
-
-<span className="text-xs text-gray-500">
-OR
-</span>
-
-<div className="flex-1 h-[1px] bg-gray-300"/>
-
-</div>
-
-{/* GOOGLE LOGIN */}
-
-<button
-onClick={handleGoogle}
-className="w-full border border-gray-400 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 bg-white hover:bg-gray-100 transition"
->
-
-<img
-src="https://www.svgrepo.com/show/475656/google-color.svg"
-className="w-4 h-4"
-/>
-
-Continue with Google
 
 </button>
 

@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase"
-import Header from "@/components/Header"
+import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
+import Header from '@/components/Header'
 
 import {
 Plus,
@@ -16,228 +16,188 @@ Settings,
 Loader2,
 Calendar,
 Search,
+UserPlus,
+Tag,
 Clock
-} from "lucide-react"
+} from 'lucide-react'
 
 export default function MobileAppDashboard() {
 
 const router = useRouter()
 
-const [user,setUser] = useState<any | null>(null)
-const [loading,setLoading] = useState(true)
+const [tasks, setTasks] = useState<any[]>([])
+const [newTask, setNewTask] = useState('')
+const [isAdding, setIsAdding] = useState(false)
 
-const [tasks,setTasks] = useState<any[]>([])
-const [newTask,setNewTask] = useState("")
-const [isAdding,setIsAdding] = useState(false)
+const [priority, setPriority] = useState('low')
+const [category, setCategory] = useState('Work')
+const [assignee, setAssignee] = useState('')
+const [dueTime, setDueTime] = useState('')
 
-const [priority,setPriority] = useState("medium")
-const [dueTime,setDueTime] = useState("")
+const [searchQuery, setSearchQuery] = useState('')
+const [filterStatus, setFilterStatus] = useState('all')
 
-const [searchQuery,setSearchQuery] = useState("")
-const [filterStatus,setFilterStatus] = useState("all")
-
-const [selectedDate,setSelectedDate] = useState(
-new Date().toISOString().split("T")[0]
+const [selectedDate, setSelectedDate] = useState(
+new Date().toISOString().split('T')[0]
 )
 
-const today = new Date().toISOString().split("T")[0]
-
-/* CHECK USER LOGIN */
-
-useEffect(()=>{
-
-const checkUser = async ()=>{
-
-const { data,error } = await supabase.auth.getUser()
-
-if(error){
-console.error(error)
-}
-
-if(!data.user){
-router.push("/login")
-return
-}
-
-setUser(data.user)
-setLoading(false)
-
-}
-
-checkUser()
-
-},[router])
+const today = new Date().toISOString().split('T')[0]
 
 /* FETCH TASKS */
 
-const fetchTasks = useCallback(async ()=>{
+const fetchTasks = async () => {
+
+const { data: { user } } = await supabase.auth.getUser()
 
 if(!user) return
 
 let query = supabase
-.from("todos")
-.select("*")
-.eq("user_id",user.id)
-.eq("due_date",selectedDate)
+.from('todos')
+.select('*')
+.eq('user_id', user.id)
+.eq('due_date', selectedDate)
 
-if(searchQuery){
-query = query.ilike("title",`%${searchQuery}%`)
+if (searchQuery) {
+query = query.ilike('title', `%${searchQuery}%`)
 }
 
-const { data,error } = await query.order("due_time",{ascending:true})
+const { data, error } = await query
+.order('due_time', { ascending: true })
 
-if(error){
-console.error("Fetch error:",error)
+if (error) {
+console.log('Fetch error:', error)
 return
 }
 
-if(!data) return
+if (data) {
 
-const filtered = data.filter((t)=>{
+const filtered = data.filter(t => {
 
-if(filterStatus === "completed") return t.status === "completed"
-if(filterStatus === "pending") return t.status === "pending"
+if (filterStatus === 'completed') return t.status === 'completed'
+if (filterStatus === 'pending') return t.status === 'pending'
 
 return true
-
 })
 
 setTasks(filtered)
 
-},[user,selectedDate,searchQuery,filterStatus])
+}
 
-/* FETCH WHEN FILTER CHANGE */
-
-useEffect(()=>{
-
-fetchTasks()
-
-},[fetchTasks])
+}
 
 /* REALTIME */
 
-useEffect(()=>{
+useEffect(() => {
 
-if(!user) return
+fetchTasks()
 
 const channel = supabase
-.channel("todos-realtime")
+.channel('todos-realtime')
 .on(
-"postgres_changes",
-{
-event:"*",
-schema:"public",
-table:"todos",
-filter:`user_id=eq.${user.id}`
-},
-()=>{
+'postgres_changes',
+{ event: '*', schema: 'public', table: 'todos' },
+() => {
 fetchTasks()
 }
 )
 .subscribe()
 
-return ()=>{
+return () => {
 supabase.removeChannel(channel)
 }
 
-},[user,fetchTasks])
+}, [selectedDate, searchQuery, filterStatus])
+
 
 /* ADD TASK */
 
-const handleAddTask = async ()=>{
+const handleAddTask = async (e: React.FormEvent) => {
 
-if(!newTask.trim() || !user) return
+e.preventDefault()
+
+if (!newTask.trim()) return
 
 setIsAdding(true)
 
-const { error } = await supabase
-.from("todos")
-.insert([{
-user_id:user.id,
-title:newTask.trim(),
-status:"pending",
+const { data: { user } } = await supabase.auth.getUser()
+
+if(!user){
+console.log("No user")
+setIsAdding(false)
+return
+}
+
+const { error } = await supabase.from('todos').insert([{
+user_id: user.id,
+title: newTask,
+status: 'pending',
 priority,
-due_time: dueTime || null,
-due_date:selectedDate
+category,
+assignee,
+due_time: dueTime,
+due_date: selectedDate
 }])
 
-if(error){
-console.error("Insert error:",error)
+if (error) {
+console.log('Insert error:', error)
 }
 
-setNewTask("")
-setDueTime("")
+setNewTask('')
+setAssignee('')
+setDueTime('')
+
 setIsAdding(false)
 
-fetchTasks()
-
 }
 
-/* ENTER ADD */
-
-const handleKeyDown = (e:React.KeyboardEvent)=>{
-
-if(e.key === "Enter"){
-handleAddTask()
-}
-
-}
 
 /* TOGGLE STATUS */
 
-const toggleStatus = async(id:string,currentStatus:string)=>{
+const toggleStatus = async (id: string, currentStatus: string) => {
 
-const nextStatus = currentStatus === "completed"
-? "pending"
-: "completed"
+const nextStatus = currentStatus === 'completed'
+? 'pending'
+: 'completed'
 
-await supabase
-.from("todos")
-.update({status:nextStatus})
-.eq("id",id)
+const { error } = await supabase
+.from('todos')
+.update({ status: nextStatus })
+.eq('id', id)
+
+if (error) console.log(error)
 
 }
 
-/* DELETE */
 
-const deleteTask = async(id:string)=>{
+/* DELETE TASK */
 
-await supabase
-.from("todos")
+const deleteTask = async (id: string) => {
+
+const { error } = await supabase
+.from('todos')
 .delete()
-.eq("id",id)
+.eq('id', id)
+
+if (error) console.log(error)
 
 }
+
 
 /* STATS */
 
 const total = tasks.length
-
-const completed = tasks.filter(
-t=>t.status === "completed"
-).length
+const completed = tasks.filter(t => t.status === 'completed').length
 
 const percent = total > 0
 ? Math.round((completed / total) * 100)
 : 0
 
-/* LOADING SCREEN */
 
-if(loading){
-
-return(
-<div className="min-h-screen flex items-center justify-center">
-<Loader2 className="animate-spin"/>
-</div>
-)
-
-}
-
-return(
+return (
 
 <div className="min-h-screen bg-[#F8FAFC] pb-36 font-sans text-slate-900">
 
-<Header/>
+<Header />
 
 <main className="p-5 max-w-md mx-auto space-y-5">
 
@@ -265,36 +225,39 @@ Success
 
 </div>
 
+
 {/* SEARCH */}
 
 <div className="relative flex items-center bg-white rounded-xl border border-slate-100 shadow-sm">
 
-<Search className="text-slate-300 ml-3" size={16}/>
+<Search className="text-slate-300 ml-3" size={16} />
 
 <input
 type="text"
 placeholder="ค้นหางาน..."
 value={searchQuery}
-onChange={(e)=>setSearchQuery(e.target.value)}
+onChange={(e) => setSearchQuery(e.target.value)}
 className="w-full bg-transparent outline-none p-3 text-sm font-semibold"
 />
 
 </div>
 
+
 {/* DATE */}
 
 <div className="flex items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
 
-<Calendar className="text-blue-500 mr-3" size={16}/>
+<Calendar className="text-blue-500 mr-3" size={16} />
 
 <input
 type="date"
 value={selectedDate}
-onChange={(e)=>setSelectedDate(e.target.value)}
+onChange={(e) => setSelectedDate(e.target.value)}
 className="w-full bg-transparent outline-none text-sm font-semibold"
 />
 
 </div>
+
 
 {/* ADD TASK */}
 
@@ -303,24 +266,64 @@ className="w-full bg-transparent outline-none text-sm font-semibold"
 <input
 type="text"
 value={newTask}
-onKeyDown={handleKeyDown}
-onChange={(e)=>setNewTask(e.target.value)}
-placeholder="เพิ่มงานใหม่..."
+onChange={(e) => setNewTask(e.target.value)}
+placeholder="เพิ่มงานหรือนัดหมายใหม่..."
 className="w-full p-4 rounded-xl bg-slate-50 ring-1 ring-slate-100 text-sm font-semibold"
 />
 
+
+<div className="grid grid-cols-2 gap-3">
+
 <div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
 
-<Clock size={14} className="text-slate-400 mr-2"/>
+<Tag size={14} className="text-slate-400 mr-2" />
+
+<select
+value={category}
+onChange={(e) => setCategory(e.target.value)}
+className="bg-transparent outline-none text-[11px] font-bold uppercase w-full"
+>
+
+<option value="Work">💼 Work</option>
+<option value="Meeting">🗓️ Meeting</option>
+<option value="Personal">🏠 Personal</option>
+<option value="Urgent">🚨 Urgent</option>
+
+</select>
+
+</div>
+
+
+<div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
+
+<Clock size={14} className="text-slate-400 mr-2" />
 
 <input
 type="time"
 value={dueTime}
-onChange={(e)=>setDueTime(e.target.value)}
+onChange={(e) => setDueTime(e.target.value)}
 className="bg-transparent outline-none text-[11px] font-bold w-full"
 />
 
 </div>
+
+</div>
+
+
+<div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
+
+<UserPlus size={14} className="text-slate-400 mr-2" />
+
+<input
+type="text"
+placeholder="ระบุผู้เกี่ยวข้อง..."
+value={assignee}
+onChange={(e) => setAssignee(e.target.value)}
+className="bg-transparent outline-none text-[12px] font-bold w-full"
+/>
+
+</div>
+
 
 <button
 disabled={isAdding}
@@ -330,8 +333,7 @@ className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-[11px] 
 
 {isAdding
 ? <Loader2 className="animate-spin" size={18}/>
-: <Plus size={18} strokeWidth={3}/>
-}
+: <Plus size={18} strokeWidth={3}/>}
 
 ADD TASK
 
@@ -339,18 +341,19 @@ ADD TASK
 
 </div>
 
+
 {/* FILTER */}
 
 <div className="flex gap-2 overflow-x-auto pb-1">
 
-{["all","pending","completed"].map((f)=>(
+{['all','pending','completed'].map((f)=>(
 <button
 key={f}
 onClick={()=>setFilterStatus(f)}
 className={`px-4 py-2 rounded-full text-[9px] font-bold uppercase tracking-widest transition
-${filterStatus===f
-? "bg-slate-900 text-white"
-: "bg-white text-slate-400 border border-slate-100"
+${filterStatus === f
+? 'bg-slate-900 text-white'
+: 'bg-white text-slate-400 border border-slate-100'
 }`}
 >
 
@@ -360,6 +363,7 @@ ${filterStatus===f
 ))}
 
 </div>
+
 
 {/* TASK LIST */}
 
@@ -383,10 +387,10 @@ className="bg-white p-4 rounded-xl flex items-center justify-between border bord
 <div className="flex items-center gap-3 flex-1">
 
 <button
-onClick={()=>toggleStatus(task.id,task.status)}
+onClick={()=>toggleStatus(task.id, task.status)}
 >
 
-{task.status==="completed"
+{task.status === 'completed'
 ? <CheckCircle2 className="text-emerald-500" size={24}/>
 : <Circle className="text-slate-300" size={24}/>
 }
@@ -396,22 +400,39 @@ onClick={()=>toggleStatus(task.id,task.status)}
 <div className="flex flex-col truncate">
 
 <span className={`text-sm font-bold truncate
-${task.status==="completed"
-? "line-through text-slate-300"
+${task.status === 'completed'
+? 'line-through text-slate-300'
 : task.due_date < today
-? "text-red-500"
-: "text-slate-800"}
+? 'text-red-500'
+: 'text-slate-800'}
 `}>
 
 {task.title}
 
 </span>
 
-{task.due_time && (
-<span className="text-[9px] font-bold text-slate-400 flex items-center gap-1 mt-1">
+
+<div className="flex gap-2 items-center mt-1">
+
+<span className="text-[8px] font-bold px-2 py-[2px] rounded-md uppercase bg-slate-100 text-slate-500">
+
+{task.category}
+
+</span>
+
+{task.due_time &&
+<span className="text-[9px] font-bold text-slate-400 flex items-center gap-1">
 <Clock size={10}/> {task.due_time}
 </span>
-)}
+}
+
+{task.assignee &&
+<span className="text-[9px] font-bold text-blue-500 flex items-center gap-1">
+<UserPlus size={10}/> {task.assignee}
+</span>
+}
+
+</div>
 
 </div>
 
@@ -434,6 +455,7 @@ className="p-2 text-slate-200 hover:text-red-400 transition"
 
 </main>
 
+
 <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center">
 
 <button className="flex flex-col items-center text-blue-600">
@@ -444,20 +466,24 @@ Home
 </button>
 
 <button
-onClick={()=>router.push("/stats")}
+onClick={()=>router.push('/stats')}
 className="flex flex-col items-center text-slate-300"
 >
+
 <PieChart size={26}/>
 <span className="text-[9px] font-black uppercase">
 Dashboard
 </span>
+
 </button>
 
 <button className="flex flex-col items-center text-slate-300">
+
 <Settings size={26}/>
 <span className="text-[9px] font-black uppercase">
 Menu
 </span>
+
 </button>
 
 </footer>
