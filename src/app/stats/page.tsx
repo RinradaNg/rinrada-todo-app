@@ -39,6 +39,56 @@ const [filterStatus,setFilterStatus] = useState("all")
 const dateInputRef = useRef<HTMLInputElement>(null)
 
 const today = new Date().toISOString().split("T")[0]
+/* CHECK TASKS DUE IN 3 DAYS */
+
+const checkDueTasks = async ()=>{
+
+if(!user) return
+
+const { data: tasks, error } = await supabase
+.from("todos")
+.select("*")
+.eq("user_id",user.id)
+
+if(error || !tasks) return
+
+const now = new Date()
+
+for(const task of tasks){
+
+if(!task.due_date) continue
+
+const due = new Date(task.due_date)
+
+const diffDays =
+(due.getTime() - now.getTime()) / (1000*60*60*24)
+
+if(diffDays <= 3 && diffDays > 0){
+
+const { data: exist } = await supabase
+.from("notifications")
+.select("id")
+.eq("task_id",task.id)
+.maybeSingle()
+
+if(!exist){
+
+await supabase
+.from("notifications")
+.insert({
+user_id:user.id,
+task_id:task.id,
+title:"⏰ งานใกล้ครบกำหนด",
+message:`${task.title} จะครบกำหนดในอีก ${Math.ceil(diffDays)} วัน`
+})
+
+}
+
+}
+
+}
+
+}
 
 /* GET USER */
 
@@ -109,6 +159,7 @@ setSelectedDayTasks(tasks)
 useEffect(()=>{
 
 fetchAllTasks()
+checkDueTasks()
 
 },[fetchAllTasks])
 
@@ -132,6 +183,7 @@ filter:`user_id=eq.${user.id}`
 },
 ()=>{
 fetchAllTasks()
+checkDueTasks()
 }
 )
 .subscribe()
@@ -162,6 +214,8 @@ const {error} = await supabase
 
 if(error){
 console.error("Update error:",error)
+}else{
+await fetchAllTasks()
 }
 
 }
@@ -307,8 +361,6 @@ Overdue
 
 </section>
 
-
-
 {/* PROGRESS */}
 
 <section className="bg-white p-6 rounded-[2rem] border border-slate-100">
@@ -336,8 +388,6 @@ style={{width:`${progress}%`}}
 
 </section>
 
-
-
 {/* CALENDAR */}
 
 <section className="bg-white p-6 rounded-[2rem] border border-slate-100">
@@ -352,10 +402,7 @@ className="cursor-pointer text-blue-500"
 onClick={()=>dateInputRef.current?.click()}
 />
 
-{viewDate.toLocaleString("default",{
-month:"long",
-year:"numeric"
-})}
+{viewDate.toLocaleString("default",{month:"long",year:"numeric"})}
 
 </h2>
 
@@ -381,17 +428,11 @@ className="hidden"
 
 </div>
 
-
-
 <div className="grid grid-cols-7 text-center text-xs mb-2">
-
 {["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(d=>(
 <div key={d}>{d}</div>
 ))}
-
 </div>
-
-
 
 <div className="grid grid-cols-7 text-center">
 
@@ -427,11 +468,9 @@ ${isSelected
 {day}
 
 {dayTasks.length>0 && !isSelected &&(
-
 <div className="absolute bottom-1 text-[9px] font-black text-blue-500">
 {dayTasks.length}
 </div>
-
 )}
 
 </button>
@@ -443,8 +482,6 @@ ${isSelected
 </div>
 
 </section>
-
-
 
 {/* TASK LIST */}
 
@@ -478,8 +515,8 @@ className="bg-white p-5 rounded-[2rem] flex justify-between items-center border 
 
 <span className={`font-bold
 ${task.status==="completed"
-?"line-through text-slate-300":""
-}`}>
+?"line-through text-slate-300":""}
+`}>
 {task.title}
 </span>
 
@@ -519,41 +556,33 @@ ${task.status==="completed"
 
 </main>
 
-
-
 <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center">
 
 <button
 onClick={()=>router.push('/')}
 className="flex flex-col items-center text-slate-300"
 >
-
 <Home size={26}/>
-
 <span className="text-[9px] font-black uppercase">
 Home
 </span>
-
 </button>
 
 <button className="flex flex-col items-center text-blue-600">
-
 <PieChart size={28}/>
-
 <span className="text-[9px] font-black uppercase">
 Dashboard
 </span>
-
 </button>
 
-<button className="flex flex-col items-center text-slate-300">
-
+<button
+onClick={()=>router.push('/menu')}
+className="flex flex-col items-center text-slate-300"
+>
 <Settings size={26}/>
-
 <span className="text-[9px] font-black uppercase">
 Menu
 </span>
-
 </button>
 
 </footer>

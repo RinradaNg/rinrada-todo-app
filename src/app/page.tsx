@@ -43,6 +43,60 @@ new Date().toISOString().split('T')[0]
 
 const today = new Date().toISOString().split('T')[0]
 
+
+/* AUTO NOTIFICATION BEFORE 3 DAYS */
+
+const checkDueTasks = async () => {
+
+const { data: { user } } = await supabase.auth.getUser()
+if(!user) return
+
+const { data: tasks } = await supabase
+.from('todos')
+.select('*')
+.eq('user_id', user.id)
+
+if(!tasks) return
+
+const now = new Date()
+
+for(const task of tasks){
+
+if(!task.due_date) continue
+
+const due = new Date(task.due_date)
+
+const diff =
+(due.getTime() - now.getTime()) / (1000*60*60*24)
+
+if(diff <= 3 && diff > 0){
+
+const { data: exist } = await supabase
+.from('notifications')
+.select('id')
+.eq('task_id', task.id)
+.maybeSingle()
+
+if(!exist){
+
+await supabase
+.from('notifications')
+.insert({
+user_id:user.id,
+task_id:task.id,
+title:"⏰ งานใกล้ครบกำหนด",
+message:`${task.title} จะครบกำหนดในอีก ${Math.ceil(diff)} วัน`
+})
+
+}
+
+}
+
+}
+
+}
+
+
 /* FETCH TASKS */
 
 const fetchTasks = async () => {
@@ -85,11 +139,13 @@ setTasks(filtered)
 
 }
 
+
 /* REALTIME */
 
 useEffect(() => {
 
 fetchTasks()
+checkDueTasks()
 
 const channel = supabase
 .channel('todos-realtime')
@@ -140,6 +196,8 @@ due_date: selectedDate
 
 if (error) {
 console.log('Insert error:', error)
+} else {
+await fetchTasks()
 }
 
 setNewTask('')
@@ -225,7 +283,6 @@ Success
 
 </div>
 
-
 {/* SEARCH */}
 
 <div className="relative flex items-center bg-white rounded-xl border border-slate-100 shadow-sm">
@@ -242,7 +299,6 @@ className="w-full bg-transparent outline-none p-3 text-sm font-semibold"
 
 </div>
 
-
 {/* DATE */}
 
 <div className="flex items-center bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
@@ -258,7 +314,6 @@ className="w-full bg-transparent outline-none text-sm font-semibold"
 
 </div>
 
-
 {/* ADD TASK */}
 
 <div className="bg-white p-5 rounded-2xl shadow-md border border-slate-100 space-y-4">
@@ -270,7 +325,6 @@ onChange={(e) => setNewTask(e.target.value)}
 placeholder="เพิ่มงานหรือนัดหมายใหม่..."
 className="w-full p-4 rounded-xl bg-slate-50 ring-1 ring-slate-100 text-sm font-semibold"
 />
-
 
 <div className="grid grid-cols-2 gap-3">
 
@@ -293,7 +347,6 @@ className="bg-transparent outline-none text-[11px] font-bold uppercase w-full"
 
 </div>
 
-
 <div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
 
 <Clock size={14} className="text-slate-400 mr-2" />
@@ -309,7 +362,6 @@ className="bg-transparent outline-none text-[11px] font-bold w-full"
 
 </div>
 
-
 <div className="flex items-center bg-slate-50 p-3 rounded-xl ring-1 ring-slate-100">
 
 <UserPlus size={14} className="text-slate-400 mr-2" />
@@ -323,7 +375,6 @@ className="bg-transparent outline-none text-[12px] font-bold w-full"
 />
 
 </div>
-
 
 <button
 disabled={isAdding}
@@ -340,7 +391,6 @@ ADD TASK
 </button>
 
 </div>
-
 
 {/* FILTER */}
 
@@ -363,7 +413,6 @@ ${filterStatus === f
 ))}
 
 </div>
-
 
 {/* TASK LIST */}
 
@@ -411,7 +460,6 @@ ${task.status === 'completed'
 
 </span>
 
-
 <div className="flex gap-2 items-center mt-1">
 
 <span className="text-[8px] font-bold px-2 py-[2px] rounded-md uppercase bg-slate-100 text-slate-500">
@@ -455,7 +503,6 @@ className="p-2 text-slate-200 hover:text-red-400 transition"
 
 </main>
 
-
 <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-2xl border-t border-slate-100 px-12 pt-6 pb-10 flex justify-between items-center">
 
 <button className="flex flex-col items-center text-blue-600">
@@ -477,7 +524,10 @@ Dashboard
 
 </button>
 
-<button className="flex flex-col items-center text-slate-300">
+<button
+onClick={()=>router.push('/menu')}
+className="flex flex-col items-center text-slate-300"
+>
 
 <Settings size={26}/>
 <span className="text-[9px] font-black uppercase">

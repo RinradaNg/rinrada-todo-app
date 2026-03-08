@@ -11,8 +11,31 @@ const router = useRouter()
 
 const [notifications,setNotifications] = useState<any[]>([])
 const [open,setOpen] = useState(false)
+const [menuOpen,setMenuOpen] = useState(false)
+const [user,setUser] = useState<any>(null)
 
 const dropdownRef = useRef<HTMLDivElement>(null)
+const menuRef = useRef<HTMLDivElement>(null)
+
+
+/* GET USER */
+
+useEffect(()=>{
+
+const getUser = async()=>{
+
+const { data } = await supabase.auth.getUser()
+
+if(data.user){
+setUser(data.user)
+}
+
+}
+
+getUser()
+
+},[])
+
 
 
 /* FETCH NOTIFICATIONS */
@@ -36,6 +59,7 @@ setNotifications(data)
 }
 
 
+
 /* MARK AS READ */
 
 const markRead = async (id:any) => {
@@ -50,6 +74,7 @@ fetchNotifications()
 }
 
 
+
 /* DELETE */
 
 const deleteNotification = async (id:any) => {
@@ -62,6 +87,19 @@ await supabase
 fetchNotifications()
 
 }
+
+
+
+/* LOGOUT */
+
+const handleLogout = async () => {
+
+await supabase.auth.signOut()
+
+router.push("/login")
+
+}
+
 
 
 /* REALTIME */
@@ -88,7 +126,8 @@ supabase.removeChannel(channel)
 },[])
 
 
-/* CLICK OUTSIDE CLOSE */
+
+/* CLICK OUTSIDE */
 
 useEffect(()=>{
 
@@ -99,6 +138,13 @@ dropdownRef.current &&
 !dropdownRef.current.contains(event.target)
 ){
 setOpen(false)
+}
+
+if(
+menuRef.current &&
+!menuRef.current.contains(event.target)
+){
+setMenuOpen(false)
 }
 
 }
@@ -112,7 +158,9 @@ document.removeEventListener("mousedown",handleClickOutside)
 },[])
 
 
+
 const unreadCount = notifications.filter(n=>!n.is_read).length
+
 
 
 return (
@@ -134,12 +182,14 @@ Vanness Plus
 </div>
 
 
+
 {/* RIGHT */}
 
-<div className="flex items-center gap-3 relative" ref={dropdownRef}>
-
+<div className="flex items-center gap-3 relative">
 
 {/* BELL */}
+
+<div ref={dropdownRef}>
 
 <button
 onClick={()=>setOpen(!open)}
@@ -159,7 +209,8 @@ className="relative w-10 h-10 rounded-2xl flex items-center justify-center bg-sl
 </button>
 
 
-{/* DROPDOWN */}
+
+{/* NOTIFICATION DROPDOWN */}
 
 {open && (
 
@@ -192,8 +243,6 @@ key={n.id}
 className="flex items-start justify-between px-4 py-3 border-b border-slate-100 hover:bg-slate-50"
 >
 
-{/* TEXT */}
-
 <div
 className="flex-1 cursor-pointer"
 onClick={()=>markRead(n.id)}
@@ -209,8 +258,6 @@ onClick={()=>markRead(n.id)}
 
 </div>
 
-
-{/* RIGHT ICON */}
 
 {!n.is_read ? (
 
@@ -237,17 +284,51 @@ className="text-slate-400 hover:text-slate-600 text-xs"
 
 )}
 
+</div>
+
+
 
 {/* PROFILE */}
 
+<div ref={menuRef} className="relative">
+
 <button
-onClick={()=>router.push('/profile')}
+onClick={()=>setMenuOpen(!menuOpen)}
 className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center font-black text-white text-[11px] active:scale-95 transition"
 >
 
-RN
+{user?.email?.charAt(0).toUpperCase() || "U"}
 
 </button>
+
+
+
+{/* PROFILE DROPDOWN */}
+
+{menuOpen && (
+
+<div className="absolute right-0 top-14 w-44 bg-white border border-slate-100 rounded-xl shadow-xl overflow-hidden">
+
+<button
+onClick={()=>router.push("/profile")}
+className="w-full text-left px-4 py-3 text-sm hover:bg-slate-50"
+>
+Edit Profile
+</button>
+
+<button
+onClick={handleLogout}
+className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-slate-50"
+>
+Logout
+</button>
+
+</div>
+
+)}
+
+</div>
+
 
 </div>
 
