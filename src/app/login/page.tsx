@@ -128,7 +128,7 @@ alert("Password reset link sent to your email")
 
 return(
 
-<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-blue-600 to-purple-600 p-6">
+<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-800 via-blue-700 to-purple-700 p-6">
 
 <div className="w-full max-w-xs">
 
@@ -136,11 +136,11 @@ return(
 
 <div className="text-center mb-6 text-white">
 
-<h1 className="text-3xl font-bold">
-Welcome 
+<h1 className="text-3xl font-bold tracking-tight">
+Welcome
 </h1>
 
-<p className="text-xs opacity-80 mt-1">
+<p className="text-xs text-white mt-1">
 Sign in or create an account
 </p>
 
@@ -156,9 +156,9 @@ Sign in or create an account
 
 <button
 onClick={()=>setTab("login")}
-className={`flex-1 text-sm py-2 rounded-md font-semibold ${
+className={`flex-1 text-sm py-2 rounded-md font-semibold transition ${
 tab === "login"
-? "bg-white shadow"
+? "bg-white shadow text-slate-900"
 : "text-slate-500"
 }`}
 >
@@ -167,9 +167,9 @@ Login
 
 <button
 onClick={()=>setTab("register")}
-className={`flex-1 text-sm py-2 rounded-md font-semibold ${
+className={`flex-1 text-sm py-2 rounded-md font-semibold transition ${
 tab === "register"
-? "bg-white shadow"
+? "bg-white shadow text-slate-900"
 : "text-slate-500"
 }`}
 >
@@ -210,7 +210,7 @@ className="bg-transparent outline-none w-full text-sm"
 
 <button
 onClick={()=>setShowPassword(!showPassword)}
-className="text-slate-400"
+className="text-slate-400 hover:text-slate-600"
 >
 
 {showPassword ? <EyeOff size={16}/> : <Eye size={16}/>}
@@ -263,7 +263,7 @@ className="bg-transparent outline-none w-full text-sm"
 <button
 onClick={tab === "login" ? handleLogin : handleRegister}
 disabled={loading}
-className="w-full bg-indigo-600 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-indigo-700 transition flex items-center justify-center"
+className="w-full bg-indigo-700 text-white py-2.5 rounded-lg font-semibold text-sm hover:bg-indigo-800 transition flex items-center justify-center"
 >
 
 {loading
