@@ -137,7 +137,7 @@ return(
 <div className="text-center mb-6 text-white">
 
 <h1 className="text-3xl font-bold">
-Welcome to Todo
+Welcome 
 </h1>
 
 <p className="text-xs opacity-80 mt-1">
